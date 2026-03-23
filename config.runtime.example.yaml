@@ -1,0 +1,59 @@
+# Runtime-oriented example derived from a working local deployment on 2026-03-24.
+# Secrets and environment-specific values are intentionally redacted.
+
+host: ""
+port: 8317
+
+tls:
+  enable: false
+  cert: ""
+  key: ""
+
+remote-management:
+  allow-remote: false
+  secret-key: "<set-management-secret-or-hash>"
+  disable-control-panel: false
+  panel-github-repository: "https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
+
+auth-dir: "~/.cli-proxy-api"
+
+codex-sync:
+  enable: true
+  source: "~/.codex/auth.json"
+
+api-keys: []
+debug: true
+
+pprof:
+  enable: false
+  addr: "127.0.0.1:8316"
+
+commercial-mode: false
+logging-to-file: true
+logs-max-total-size-mb: 0
+error-logs-max-files: 0
+request-log: true
+usage-statistics-enabled: false
+
+proxy-url: "<optional-http-or-socks5-proxy>"
+force-model-prefix: false
+passthrough-headers: false
+request-retry: 3
+max-retry-credentials: 0
+max-retry-interval: 30
+
+quota-exceeded:
+  switch-project: true
+  switch-preview-model: true
+
+routing:
+  strategy: "round-robin"
+
+ws-auth: false
+nonstream-keepalive-interval: 0
+
+oauth-model-alias:
+  codex:
+    - name: "gpt-5"
+      alias: "gpt-5.4"
+      fork: true
