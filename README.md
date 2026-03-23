@@ -60,6 +60,29 @@ Get 10% OFF GLM CODING PLAN：https://z.ai/subscribe?ic=8JVLJQFSKB
 
 CLIProxyAPI Guides: [https://help.router-for.me/](https://help.router-for.me/)
 
+## Codex Auth Auto Sync
+
+CLIProxyAPI can watch `~/.codex/auth.json`, convert it into a normal Codex auth file, and mirror it into your configured `auth-dir`.
+
+Enable it in `config.yaml`:
+
+```yaml
+auth-dir: "~/.cli-proxy-api"
+
+codex-sync:
+  enable: true
+  source: "~/.codex/auth.json"
+```
+
+How it works:
+
+- watches the Codex CLI auth source file
+- converts it into the flattened CLIProxyAPI Codex auth format
+- writes the generated file into `auth-dir`
+- relies on the existing auth watcher to hot-load the updated credential
+
+After you restart once with this config enabled, later updates to `~/.codex/auth.json` are imported automatically and do not require another service restart.
+
 ## Management API
 
 see [MANAGEMENT_API.md](https://help.router-for.me/management/api)
