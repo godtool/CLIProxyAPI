@@ -41,6 +41,9 @@ type Config struct {
 	// AuthDir is the directory where authentication token files are stored.
 	AuthDir string `yaml:"auth-dir" json:"-"`
 
+	// CodexSync optionally mirrors ~/.codex/auth.json into auth-dir as a normal Codex auth file.
+	CodexSync CodexSyncConfig `yaml:"codex-sync" json:"codex-sync"`
+
 	// Debug enables or disables debug-level logging and other debug features.
 	Debug bool `yaml:"debug" json:"debug"`
 
@@ -149,6 +152,12 @@ type ClaudeHeaderDefaults struct {
 type CodexHeaderDefaults struct {
 	UserAgent    string `yaml:"user-agent" json:"user-agent"`
 	BetaFeatures string `yaml:"beta-features" json:"beta-features"`
+}
+
+// CodexSyncConfig controls optional syncing from Codex CLI auth.json into the proxy auth-dir.
+type CodexSyncConfig struct {
+	Enable bool   `yaml:"enable" json:"enable"`
+	Source string `yaml:"source,omitempty" json:"source,omitempty"`
 }
 
 // TLSConfig holds HTTPS server settings.
@@ -610,6 +619,13 @@ func LoadConfigOptional(configFile string, optional bool) (*Config, error) {
 	cfg.Pprof.Addr = strings.TrimSpace(cfg.Pprof.Addr)
 	if cfg.Pprof.Addr == "" {
 		cfg.Pprof.Addr = DefaultPprofAddr
+	}
+
+	if cfg.CodexSync.Enable {
+		cfg.CodexSync.Source = strings.TrimSpace(cfg.CodexSync.Source)
+		if cfg.CodexSync.Source == "" {
+			cfg.CodexSync.Source = "~/.codex/auth.json"
+		}
 	}
 
 	if cfg.LogsMaxTotalSizeMB < 0 {

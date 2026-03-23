@@ -31,6 +31,12 @@ remote-management:
 # Authentication directory (supports ~ for home directory)
 auth-dir: "~/.cli-proxy-api"
 
+# Optional: watch Codex CLI auth.json and mirror it into auth-dir as a normal Codex auth file.
+# When enabled, updates to the source file are converted and hot-loaded without restarting the server.
+# codex-sync:
+#   enable: true
+#   source: "~/.codex/auth.json"
+
 # API keys for authentication
 api-keys:
   - "your-api-key-1"

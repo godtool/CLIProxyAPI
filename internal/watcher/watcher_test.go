@@ -3,6 +3,7 @@ package watcher
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -21,6 +22,86 @@ import (
 	coreauth "github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/auth"
 	"gopkg.in/yaml.v3"
 )
+
+func TestSyncCodexSourceWritesConvertedAuthFile(t *testing.T) {
+	authDir := t.TempDir()
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "auth.json")
+	idToken := testJWT(t, map[string]any{
+		"email": "watcher@example.com",
+		"https://api.openai.com/auth": map[string]any{
+			"chatgpt_account_id": "acct_watch_1",
+			"chatgpt_plan_type":  "plus",
+		},
+	})
+	raw := []byte(`{
+  "auth_mode": "chatgpt",
+  "last_refresh": "2026-03-24T08:00:00Z",
+  "tokens": {
+    "access_token": "watch-access",
+    "refresh_token": "watch-refresh",
+    "id_token": "` + idToken + `",
+    "account_id": "acct_watch_1"
+  }
+}`)
+	if err := os.WriteFile(sourcePath, raw, 0o600); err != nil {
+		t.Fatalf("write source auth: %v", err)
+	}
+
+	w := &Watcher{
+		authDir: authDir,
+		config: &config.Config{
+			AuthDir: authDir,
+			CodexSync: config.CodexSyncConfig{
+				Enable: true,
+				Source: sourcePath,
+			},
+		},
+	}
+
+	outPath, err := w.syncCodexSource()
+	if err != nil {
+		t.Fatalf("syncCodexSource() error = %v", err)
+	}
+	if outPath == "" {
+		t.Fatal("expected syncCodexSource() to return generated path")
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read generated auth: %v", err)
+	}
+
+	var meta map[string]any
+	if err := json.Unmarshal(data, &meta); err != nil {
+		t.Fatalf("unmarshal generated auth: %v", err)
+	}
+	if got, want := meta["type"], "codex"; got != want {
+		t.Fatalf("type = %v, want %v", got, want)
+	}
+	if got, want := meta["email"], "watcher@example.com"; got != want {
+		t.Fatalf("email = %v, want %v", got, want)
+	}
+	if got, want := meta["access_token"], "watch-access"; got != want {
+		t.Fatalf("access_token = %v, want %v", got, want)
+	}
+}
+
+func testJWT(t *testing.T, claims map[string]any) string {
+	t.Helper()
+
+	header, err := json.Marshal(map[string]any{"alg": "none", "typ": "JWT"})
+	if err != nil {
+		t.Fatalf("marshal header: %v", err)
+	}
+	payload, err := json.Marshal(claims)
+	if err != nil {
+		t.Fatalf("marshal claims: %v", err)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(header) + "." +
+		base64.RawURLEncoding.EncodeToString(payload) + "."
+}
 
 func TestApplyAuthExcludedModelsMeta_APIKey(t *testing.T) {
 	auth := &coreauth.Auth{Attributes: map[string]string{}}

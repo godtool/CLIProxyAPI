@@ -39,6 +39,11 @@ func (w *Watcher) start(ctx context.Context) error {
 	}
 	log.Debugf("watching auth directory: %s", w.authDir)
 
+	w.refreshCodexSyncWatch()
+	if _, errSync := w.syncCodexSource(); errSync != nil {
+		log.Debugf("initial codex sync skipped: %v", errSync)
+	}
+
 	go w.processEvents(ctx)
 
 	w.reloadClients(true, nil, false)
@@ -73,7 +78,8 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 	isConfigEvent := normalizedName == normalizedConfigPath && event.Op&configOps != 0
 	authOps := fsnotify.Create | fsnotify.Write | fsnotify.Remove | fsnotify.Rename
 	isAuthJSON := strings.HasPrefix(normalizedName, normalizedAuthDir) && strings.HasSuffix(normalizedName, ".json") && event.Op&authOps != 0
-	if !isConfigEvent && !isAuthJSON {
+	isCodexSyncEvent := normalizedName != "" && normalizedName == w.normalizeAuthPath(w.codexSyncSource) && event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Rename) != 0
+	if !isConfigEvent && !isAuthJSON && !isCodexSyncEvent {
 		// Ignore unrelated files (e.g., cookie snapshots *.cookie) and other noise.
 		return
 	}
@@ -85,6 +91,13 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 	if isConfigEvent {
 		log.Debugf("config file change details - operation: %s, timestamp: %s", event.Op.String(), now.Format("2006-01-02 15:04:05.000"))
 		w.scheduleConfigReload()
+		return
+	}
+
+	if isCodexSyncEvent {
+		if _, err := w.syncCodexSource(); err != nil {
+			log.Warnf("codex sync failed for %s: %v", filepath.Base(event.Name), err)
+		}
 		return
 	}
 

@@ -104,6 +104,11 @@ func (w *Watcher) reloadConfig() bool {
 	w.config = newConfig
 	w.clientsMutex.Unlock()
 
+	w.refreshCodexSyncWatch()
+	if _, err := w.syncCodexSource(); err != nil {
+		log.Debugf("config reload codex sync skipped: %v", err)
+	}
+
 	var affectedOAuthProviders []string
 	if oldConfig != nil {
 		_, affectedOAuthProviders = diff.DiffOAuthExcludedModelChanges(oldConfig.OAuthExcludedModels, newConfig.OAuthExcludedModels)
